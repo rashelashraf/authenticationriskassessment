@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Risk Assessment Tool</title>
+    <style>
+        /* CSS Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #2d3748;
+        }
+
+        h2 {
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        h3 {
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            height: 4px;
+            background-color: #e2e8f0;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .progress-line {
+            position: absolute;
+            height: 4px;
+            background-color: #4299e1;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            transition: width 0.3s ease;
+        }
+
+        .step {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #64748b;
+            z-index: 3;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        .step.complete {
+            background-color: #48bb78;
+            color: white;
+        }
+
+        .step-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+        }
+
+        .step-label {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .risk-item {
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        @media (min-width: 640px) {
+            .risk-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .risk-label {
+            margin-bottom: 0.5rem;
+            flex: 1;
+        }
+
+        @media (min-width: 640px) {
+            .risk-label {
+                margin-bottom: 0;
+            }
+        }
+
+        .risk-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-risk {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background-color: #e2e8f0;
+        }
+
+        .btn-risk.active-low {
+            background-color: #48bb78;
+            color: white;
+        }
+
+        .btn-risk.active-moderate {
+            background-color: #ecc94b;
+            color: white;
+        }
+
+        .btn-risk.active-high {
+            background-color: #f56565;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3182ce;
+        }
+
+        .btn-secondary {
+            background-color: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4a5568;
+        }
+
+        .btn-yes-no {
+            padding: 0.5rem 1.5rem;
+            background-color: #e2e8f0;
+        }
+
+        .btn-yes-no.active {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        /* Results Styling */
+        .result-box {
+            padding: 1.5rem;
+            background-color: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .aal-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .recommendations {
+            padding: 1.5rem;
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.25rem;
+        }
+
+        .considerations {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 4px;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Authentication Risk Assessment Tool</h1>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-line" id="progress-line"></div>
+                <div class="step active" id="step-1">1</div>
+                <div class="step" id="step-2">2</div>
+                <div class="step" id="step-3">3</div>
+            </div>
+            <div class="step-labels">
+                <span class="step-label">Risk Factors</span>
+                <span class="step-label">Personal Data</span>
+                <span class="step-label">Results</span>
+            </div>
+        </div>
+        
+        <!-- Step 1: Risk Matrix -->
+        <div id="step-1-content">
+            <h2>1. What are the risks of providing the digital service?</h2>
+            <div class="form-group">
+                <div class="risk-item">
+                    <div class="risk-label">Inconvenience, distress, or damage to standing or reputation</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="reputation" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="reputation" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="reputation" data-value="high">High</button>
+                    </div>
+                </div>
+                
+                <div class="risk-item">
+                    <div class="risk-label">Financial loss or enterprise liability</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="financial" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="financial" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="financial" data-value="high">High</button>
+                    </div>
+                </div>
+                
+                <div class="risk-item">
+                    <div class="risk-label">Harm to organization programs</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="programs" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="programs" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="programs" data-value="high">High</button>
+                    </div>
+                </div>
+                
+                <div class="risk-item">
+                    <div class="risk-label">Unauthorized release of sensitive information</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="sensitive" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="sensitive" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="sensitive" data-value="high">High</button>
+                    </div>
+                </div>
+                
+                <div class="risk-item">
+                    <div class="risk-label">Personal safety</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="safety" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="safety" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="safety" data-value="high">High</button>
+                    </div>
+                </div>
+                
+                <div class="risk-item">
+                    <div class="risk-label">Civil or criminal violations</div>
+                    <div class="risk-buttons">
+                        <button class="btn btn-risk active-low" data-category="violations" data-value="low">Low</button>
+                        <button class="btn btn-risk" data-category="violations" data-value="moderate">Moderate</button>
+                        <button class="btn btn-risk" data-category="violations" data-value="high">High</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="step-1-next" class="btn btn-primary">Continue</button>
+        </div>
+        
+        <!-- Step 2: Personal Data Question -->
+        <div id="step-2-content" class="hidden">
+            <h2>2. Are you making personal data accessible?</h2>
+            <div class="form-group" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button id="personal-data-no" class="btn btn-yes-no active">No</button>
+                <button id="personal-data-yes" class="btn btn-yes-no">Yes</button>
+            </div>
+            
+            <button id="step-2-next" class="btn btn-primary" style="margin-top: 1.5rem;">Continue</button>
+        </div>
+        
+        <!-- Step 3: Results -->
+        <div id="step-3-content" class="hidden">
+            <div class="result-box">
+                <h2 id="result-heading">Assessment Result</h2>
+                <div class="aal-info">
+                    <h3 id="aal-title"></h3>
+                    <p id="aal-description" style="margin-bottom: 1rem;"></p>
+                    <div>
+                        <p style="font-weight: 500;">Examples:</p>
+                        <p id="aal-examples"></p>
+                    </div>
+                </div>
+                
+                <button id="toggle-recommendations" class="btn btn-primary" style="margin-top: 1rem;">Show Detailed Recommendations</button>
+            </div>
+            
+            <div id="recommendations" class="recommendations hidden">
+                <h3>Recommended Authentication Measures</h3>
+                
+                <div id="aal1-recommendations" class="hidden">
+                    <ul>
+                        <li>Implement strong password policies (minimum length, complexity requirements)</li>
+                        <li>Rate limiting and account lockout after multiple failed attempts</li>
+                        <li>Basic security questions as fallback</li>
+                        <li>Email verification during account creation</li>
+                        <li>Consider offering optional 2FA for security-conscious users</li>
+                    </ul>
+                </div>
+                
+                <div id="aal2-recommendations" class="hidden">
+                    <ul>
+                        <li>Require two different types of authentication factors</li>
+                        <li>Time-based one-time passwords (TOTP) via authenticator apps</li>
+                        <li>SMS or email verification codes</li>
+                        <li>Push notifications to verified devices</li>
+                        <li>Implement anti-phishing measures</li>
+                        <li>Implement secure session management</li>
+                        <li>Consider adaptive authentication based on risk profiles</li>
+                    </ul>
+                </div>
+                
+                <div id="aal3-recommendations" class="hidden">
+                    <ul>
+                        <li>Hardware-based authenticators (security keys like YubiKey)</li>
+                        <li>Cryptographic authentication protocols</li>
+                        <li>Biometric verification with liveness detection</li>
+                        <li>Strict session management and timely session termination</li>
+                        <li>Transaction signing for critical operations</li>
+                        <li>Certificate-based authentication</li>
+                        <li>Continuous authentication for highly sensitive systems</li>
+                        <li>Consider implementing a zero-trust architecture</li>
+                    </ul>
+                </div>
+                
+                <div class="considerations">
+                    <h4 style="color: #744210; margin-bottom: 0.5rem;">Implementation Considerations</h4>
+                    <ul>
+                        <li>Balance security requirements with user experience</li>
+                        <li>Implement proper account recovery mechanisms</li>
+                        <li>Consider accessibility needs in your authentication system</li>
+                        <li>Regularly review and update authentication methods as new threats emerge</li>
+                        <li>Provide clear security guidance to users</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button id="restart" class="btn btn-secondary" style="margin-top: 1rem;">Start New Assessment</button>
+        </div>
+        
+        <div class="footer">
+            <p>This tool follows the general framework of NIST SP 800-63-3 Digital Identity Guidelines but has been adapted for ease of use. For official compliance requirements, please refer to the complete NIST documentation.</p>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            step: 1,
+            riskAssessments: {
+                reputation: 'low',
+                financial: 'low',
+                programs: 'low',
+                sensitive: 'low',
+                safety: 'low',
+                violations: 'low'
+            },
+            personalData: false,
+            result: null
+        };
+
+        // DOM Elements
+        const progressLine = document.getElementById('progress-line');
+        const step1Content = document.getElementById('step-1-content');
+        const step2Content = document.getElementById('step-2-content');
+        const step3Content = document.getElementById('step-3-content');
+        const step1Next = document.getElementById('step-1-next');
+        const step2Next = document.getElementById('step-2-next');
+        const step1Element = document.getElementById('step-1');
+        const step2Element = document.getElementById('step-2');
+        const step3Element = document.getElementById('step-3');
+        const personalDataNo = document.getElementById('personal-data-no');
+        const personalDataYes = document.getElementById('personal-data-yes');
+        const toggleRecommendations = document.getElementById('toggle-recommendations');
+        const recommendations = document.getElementById('recommendations');
+        const aal1Recommendations = document.getElementById('aal1-recommendations');
+        const aal2Recommendations = document.getElementById('aal2-recommendations');
+        const aal3Recommendations = document.getElementById('aal3-recommendations');
+        const aalTitle = document.getElementById('aal-title');
+        const aalDescription = document.getElementById('aal-description');
+        const aalExamples = document.getElementById('aal-examples');
+        const restart = document.getElementById('restart');
+
+        // Event Listeners
+        document.querySelectorAll('.btn-risk').forEach(button => {
+            button.addEventListener('click', function() {
+                const category = this.dataset.category;
+                const value = this.dataset.value;
+                
+                // Update button UI
+                document.querySelectorAll(`.btn-risk[data-category="${category}"]`).forEach(btn => {
+                    btn.classList.remove('active-low', 'active-moderate', 'active-high');
+                });
+                this.classList.add(`active-${value}`);
+                
+                // Update state
+                state.riskAssessments[category] = value;
+            });
+        });
+
+        personalDataNo.addEventListener('click', function() {
+            personalDataNo.classList.add('active');
+            personalDataYes.classList.remove('active');
+            state.personalData = false;
+        });
+
+        personalDataYes.addEventListener('click', function() {
+            personalDataYes.classList.add('active');
+            personalDataNo.classList.remove('active');
+            state.personalData = true;
+        });
+
+        step1Next.addEventListener('click', function() {
+            goToStep(2);
+        });
+
+        step2Next.addEventListener('click', function() {
+            determineAAL();
+            goToStep(3);
+        });
+
+        toggleRecommendations.addEventListener('click', function() {
+            recommendations.classList.toggle('hidden');
+            toggleRecommendations.textContent = recommendations.classList.contains('hidden') 
+                ? 'Show Detailed Recommendations' 
+                : 'Hide Recommendations';
+        });
+
+        restart.addEventListener('click', function() {
+            resetAssessment();
+            goToStep(1);
+        });
+
+        // Functions
+        function goToStep(step) {
+            state.step = step;
+            updateProgressBar();
+            
+            // Hide all content sections
+            step1Content.classList.add('hidden');
+            step2Content.classList.add('hidden');
+            step3Content.classList.add('hidden');
+            
+            // Show the current step content
+            if (step === 1) {
+                step1Content.classList.remove('hidden');
+            } else if (step === 2) {
+                step2Content.classList.remove('hidden');
+            } else if (step === 3) {
+                step3Content.classList.remove('hidden');
+            }
+        }
+
+        function updateProgressBar() {
+            // Update step indicators
+            step1Element.className = 'step';
+            step2Element.className = 'step';
+            step3Element.className = 'step';
+            
+            if (state.step === 1) {
+                step1Element.classList.add('active');
+                progressLine.style.width = '0%';
+            } else if (state.step === 2) {
+                step1Element.classList.add('complete');
+                step2Element.classList.add('active');
+                progressLine.style.width = '50%';
+            } else if (state.step === 3) {
+                step1Element.classList.add('complete');
+                step2Element.classList.add('complete');
+                step3Element.classList.add('active');
+                progressLine.style.width = '100%';
+            }
+        }
+
+        function determineAAL() {
+            // Check if any category is assessed as high
+            const hasHigh = Object.values(state.riskAssessments).includes('high');
+            
+            if (hasHigh) {
+                // Check if personal safety is moderate
+                if (state.riskAssessments.safety === 'moderate') {
+                    state.result = 3;
+                } else {
+                    // Check if any is moderate
+                    const hasModerate = Object.values(state.riskAssessments).includes('moderate');
+                    if (hasModerate) {
+                        state.result = 2;
+                    } else {
+                        state.result = state.personalData ? 2 : 1;
+                    }
+                }
+            } else {
+                // Check if any is moderate
+                const hasModerate = Object.values(state.riskAssessments).includes('moderate');
+                
+                if (hasModerate) {
+                    // All moderate path
+                    state.result = state.personalData ? 2 : 1;
+                } else {
+                    // All low path
+                    state.result = state.personalData ? 2 : 1;
+                }
+            }
+            
+            updateResults();
+        }
+
+        function updateResults() {
+            // Hide all recommendation sections
+            aal1Recommendations.classList.add('hidden');
+            aal2Recommendations.classList.add('hidden');
+            aal3Recommendations.classList.add('hidden');
+            
+            // Update result info based on AAL level
+            if (state.result === 1) {
+                aalTitle.textContent = "AAL 1 - Some assurance required";
+                aalDescription.textContent = "Single-factor authentication is acceptable. Requires either something you know (e.g., password), something you have (e.g., smartphone), or something you are (e.g., fingerprint).";
+                aalExamples.textContent = "Username and password";
+                aal1Recommendations.classList.remove('hidden');
+            } else if (state.result === 2) {
+                aalTitle.textContent = "AAL 2 - High confidence required";
+                aalDescription.textContent = "Two-factor authentication is required, using two different authentication factors.";
+                aalExamples.textContent = "Password + SMS code, Password + authenticator app";
+                aal2Recommendations.classList.remove('hidden');
+            } else if (state.result === 3) {
+                aalTitle.textContent = "AAL 3 - Very high confidence required";
+                aalDescription.textContent = "Multi-factor authentication with hardware-based authenticator and biometric or knowledge factor.";
+                aalExamples.textContent = "Password + hardware security key (e.g., YubiKey), Smart card + PIN";
+                aal3Recommendations.classList.remove('hidden');
+            }
+        }
+
+        function resetAssessment() {
+            // Reset risk assessments
+            Object.keys(state.riskAssessments).forEach(category => {
+                state.riskAssessments[category] = 'low';
+            });
+            
+            // Reset UI for risk buttons
+            document.querySelectorAll('.btn-risk').forEach(button => {
+                button.classList.remove('active-low', 'active-moderate', 'active-high');
+                if (button.dataset.value === 'low') {
+                    button.classList.add('active-low');
+                }
+            });
+            
+            // Reset personal data
+            state.personalData = false;
+            personalDataNo.classList.add('active');
+            personalDataYes.classList.remove('active');
+            
+            // Reset recommendations view
+            recommendations.classList.add('hidden');
+            toggleRecommendations.textContent = 'Show Detailed Recommendations';
+        }
+
+        // Initialize
+        updateProgressBar();
+    </script>
+</body>
+</html>
